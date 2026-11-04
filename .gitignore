@@ -1,0 +1,19 @@
+# Visual Studio
+.vs/
+*.vsidx
+*.VC.db
+*.VC.opendb
+
+# Build
+build/
+out/
+bin/
+obj/
+CMakeFiles/
+CMakeCache.txt
+*.sln
+*.vcxproj*
+*.user
+
+# CMake
+cmake-build-*/
