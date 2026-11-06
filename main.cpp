@@ -10,7 +10,7 @@
 
 template<typename U> struct is_complex : std::false_type {};
 template<typename U> struct is_complex<std::complex<U>> : std::true_type {};
-template<typename U> constexpr bool is_complex_v = is_complex<U>::value;
+template<typename U> inline constexpr bool is_complex_v = is_complex<U>::value;
 
 template<typename T>
 bool equals(const T& a, const T& b, double eps) {
@@ -280,10 +280,11 @@ public:
         return result;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const Matrix& m) {
+    friend std::ostream& operator<<(std::ostream& os, const Matrix<T>& m) {
         for (int i = 0; i < m._row; ++i) {
-            for (int j = 0; j < m._column; ++j)
+            for (int j = 0; j < m._column; ++j) {
                 os << m._data[i][j] << ' ';
+            }
             os << '\n';
         }
         return os;
@@ -293,99 +294,140 @@ public:
 
 template<typename T>
 bool is_coplanar(const Matrix<T>& a, const Matrix<T>& b, const Matrix<T>& c) {
+
     if (a.row() != 3 || a.col() != 1 || b.row() != 3 || b.col() != 1 || c.row() != 3 || c.col() != 1) {
         throw std::invalid_argument("Expected 3x1 vectors");
     }
     T det = a(0, 0) * (b(1, 0) * c(2, 0) - b(2, 0) * c(1, 0)) - a(1, 0) * (b(0, 0) * c(2, 0) - b(2, 0) * c(0, 0)) + a(2, 0) * (b(0, 0) * c(1, 0) - b(1, 0) * c(0, 0));
     return equals(det, T{}, Matrix<T>::_EPS);
+
 }
 
 int main() {
 
-    std::cout << "Constructors\n";
+    std::cout << "\n1. Constructors\n\n";
     Matrix<double> A(3, 3, 1.5);
-    std::cout << "A(3,3,1.5):\n" << A;
+    std::cout << "A(3,3, 1.5):\n" << A;
 
     Matrix<double> B(3, 3, -5.0, 5.0);
-    std::cout << "B(3,3,-5,5) random:\n" << B;
+    std::cout << "B(3,3, random[-5,5]):\n" << B;
 
     Matrix<double> C(3, 3, -5.0, 5.0);
-    std::cout << "C(3,3,-5,5) random:\n" << C;
+    std::cout << "C(3,3, random[-5,5]):\n" << C;
 
-    std::cout << "\noperator()\n";
+
+    std::cout << "\n2. operator()\n\n";
+
+    std::cout << "A(0,0) before = " << A(0, 0) << '\n';
     A(0, 0) = 10.0;
-    std::cout << A;
+    std::cout << "A(0,0) after  = " << A(0, 0) << "\n\n";
+
+    std::cout << "A:\n" << A;
 
 
-    std::cout << "\ncomparison\n";
-    std::cout << "A == B ? " << (B == C) << '\n';
-    std::cout << "A != B ? " << (B != C) << '\n';
+    std::cout << "\n3. Comparison\n\n";
+    std::cout << "B == C ? " << (B == C) << '\n';
+    std::cout << "B != C ? " << (B != C) << '\n';
+    std::cout << "B == B ? " << (B == B) << '\n';
 
-    std::cout << "\naddition\n";
-    Matrix<double> S = B + C;
-    std::cout << "A + R:\n" << S;
-    
 
-    std::cout << "\nsubstraction\n";
-    Matrix<double> D = B - C;
-    std::cout << "B - C:\n" << D;
+    std::cout << "\n4. + / - \n\n";
+    std::cout << "B + C:\n" << (B + C);
+    std::cout << "B - C:\n" << (B - C);
 
-    std::cout << "\nscalar multiplication (commutative)\n";
+
+    std::cout << "\n5. Scalar multiplication\n\n";
     Matrix<double> M1 = A * 2.0;
     Matrix<double> M2 = 2.0 * A;
     std::cout << "A * 2:\n" << M1;
-    std::cout << "M1 == M2 ? " << (M1 == M2) << '\n';
+    std::cout << "A*2 == 2*A ? " << (M1 == M2) << '\n';
 
-    std::cout << "\nscalar division\n";
-    Matrix<double> V = B / 2.0;
-    std::cout << "B / 2:\n" << V;
-    
 
-    std::cout << "\nmatrix multiplication\n";
-    Matrix<double> P = B * C;
-    std::cout << "A * R:\n" << P;
+    std::cout << "\n6. Scalar division\n\n";
+    std::cout << "B / 2:\n" << (B / 2.0);
 
-    std::cout << "\n=== trace ===\n";
+
+    std::cout << "\n7. Matrix multiplication\n\n";
+    std::cout << "B * C:\n" << (B * C);
+
+    std::cout << "\n8. Trace\n\n";
     std::cout << "trace(B) = " << B.find_tr() << '\n';
     std::cout << "trace(C) = " << C.find_tr() << '\n';
 
-    
-
-    std::cout << "\ncomplex\n";
-
-    using Cmplx  = std::complex<double>;
+    //Комплексные
+    std::cout << "\n9. std::complex<double>\n\n";
+    using Cmplx = std::complex<double>;
     Matrix<Cmplx> Z(2, 2, Cmplx{ 1.0, 1.0 });
-    std::cout << "Z(2,2,1+1i):\n" << Z;
+    std::cout << "Z(2,2, 1+1i):\n" << Z;
 
     Matrix<Cmplx> Zr(2, 2, Cmplx{ -2.0, -2.0 }, Cmplx{ 2.0, 2.0 });
-    std::cout << "Zr random:\n" << Zr;
+    std::cout << "Zr(2,2, random):\n" << Zr;
 
     std::cout << "Z * Zr:\n" << (Z * Zr);
     std::cout << "trace(Z) = " << Z.find_tr() << '\n';
 
-    
-    std::cout << "\nTask\n";
-    Matrix<double> a(3, 1, 0.0);
-    Matrix<double> b(3, 1, 0.0);
-    Matrix<double> c(3, 1, 0.0);
-    a(0, 0) = 1;
-    a(1, 0) = 2;
+
+    std::cout << "\n10. Matrix<int>\n\n";
+    Matrix<int> I(3, 3, -3, 3);
+    std::cout << "I(3,3, random[-3,3]):\n" << I;
+    std::cout << "trace(I) = " << I.find_tr() << '\n';
+    std::cout << "I + I:\n" << (I + I);
+    std::cout << "I * I:\n" << (I * I);
+
+
+    std::cout << "\n11. Matrix<float>\n\n";
+    Matrix<float> F(2, 3, -1.0f, 1.0f);
+    std::cout << "F(2,3, random[-1,1]):\n" << F;
+    std::cout << "F * 2:\n" << (F * 2.0f);
+    std::cout << "F / 2:\n" << (F / 2.0f);
+
+
+    std::cout << "\n12. std::complex<float>\n\n";
+    using CmplxF = std::complex<float>;
+    Matrix<CmplxF> Zf(2, 2, CmplxF{ 1.0f, -1.0f });
+    std::cout << "Zf(2,2, 1-1i):\n" << Zf;
+    std::cout << "Zf * 2:\n" << (Zf * 2.0f);
+
+
+    std::cout << "\n13. Task: coplanarity (deterministic, coplanar)\n\n";
+    Matrix<double> a(3, 1, 0.0), b(3, 1, 0.0), c(3, 1, 0.0);
+    a(0, 0) = 1; 
+    a(1, 0) = 2; 
     a(2, 0) = 3;
 
-    b(0, 0) = 4;
-    b(1, 0) = 5;
+    b(0, 0) = 4; 
+    b(1, 0) = 5; 
     b(2, 0) = 6;
 
-    c(0, 0) = 7;
-    c(1, 0) = 8;
+    c(0, 0) = 7; 
+    c(1, 0) = 8; 
     c(2, 0) = 9;
 
     std::cout << "a:\n" << a << "b:\n" << b << "c:\n" << c;
-    std::cout << "Coplanar? " << (is_coplanar(a, b, c) ? "YES" : "NO") << '\n';
+    std::cout << "a, b, c coplanar? " << (is_coplanar(a, b, c) ? "Y" : "N") << '\n';
 
+    std::cout << "\n14. Task: coplanarity (non-coplanar)\n\n";
     Matrix<double> d(3, 1, 0.0);
-    d(0, 0) = 1; d(1, 0) = 0; d(2, 0) = 0;
-    std::cout << "Coplanar(a,b,d)? " << (is_coplanar(a, b, d) ? "YES" : "NO") << '\n';
 
-    return 0;
+    d(0, 0) = 1; 
+    d(1, 0) = 0; 
+    d(2, 0) = 0;
+
+    std::cout << "d:\n" << d;
+    std::cout << "a, b, d coplanar? " << (is_coplanar(a, b, d) ? "Y" : "N") << '\n';
+
+
+    std::cout << "\n15. Task: coplanarity (random)\n\n";
+    Matrix<double> ra(3, 1, -3.0, 3.0);
+    Matrix<double> rb(3, 1, -3.0, 3.0);
+    Matrix<double> rc(3, 1, -3.0, 3.0);
+    std::cout << "ra:\n" << ra << "rb:\n" << rb << "rc:\n" << rc;
+    std::cout << "ra, rb, rc coplanar? " << (is_coplanar(ra, rb, rc) ? "Y" : "N") << '\n';
+
+    Matrix<double> rc2 = ra + rb;
+    std::cout << "rc2 = ra + rb:\n" << rc2;
+    std::cout << "ra, rb, rc2 coplanar? " << (is_coplanar(ra, rb, rc2) ? "Y" : "N") << '\n';
+
+    
+
 }
