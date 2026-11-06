@@ -7,9 +7,10 @@
 #include <cmath>
 #include <utility>
 
+
 template<typename U> struct is_complex : std::false_type {};
 template<typename U> struct is_complex<std::complex<U>> : std::true_type {};
-template<typename U> inline constexpr bool is_complex_v = is_complex<U>::value;
+template<typename U> constexpr bool is_complex_v = is_complex<U>::value;
 
 template<typename T>
 bool equals(const T& a, const T& b, double eps) {
@@ -24,25 +25,27 @@ bool equals(const T& a, const T& b, double eps) {
     }
 }
 
+template<typename R>
+auto make_dist(R low, R up) {
+    if constexpr (std::is_integral_v<R>) {
+        return std::uniform_int_distribution<R>(low, up);
+    }
+    else {
+        return std::uniform_real_distribution<R>(low, up);
+    }
+}
+
 template<typename T>
 T random_value(std::mt19937& gen, T low, T up) {
     if constexpr (is_complex_v<T>) {
         using R = typename T::value_type;
-        if constexpr (std::is_integral_v<R>) {
-            std::uniform_int_distribution<R> dist(low.real(), up.real());
-            return T(dist(gen), dist(gen));
-        }
-        else {
-            std::uniform_real_distribution<R> dist(low.real(), up.real());
-            return T(dist(gen), dist(gen));
-        }
-    }
-    else if constexpr (std::is_integral_v<T>) {
-        std::uniform_int_distribution<T> dist(low, up);
-        return dist(gen);
+        auto dist = make_dist(low.real(), up.real());
+        R re = dist(gen);
+        R im = dist(gen);
+        return T(re, im);
     }
     else {
-        std::uniform_real_distribution<T> dist(low, up);
+        auto dist = make_dist(low, up);
         return dist(gen);
     }
 }
@@ -55,12 +58,12 @@ private:
     T** _data = nullptr;
 
     void allocate(int row, int column) {
-        _data = new T * [row];
+        _data = new T*[row];
         for (int i = 0; i < row; ++i) {
             _data[i] = new T[column];
         }
     }
-    void deallocate() {
+    void clear() {
         if (_data) {
             for (int i = 0; i < _row; ++i) {
                 delete[] _data[i];
@@ -73,7 +76,8 @@ public:
 
     static constexpr double _EPS = 0.0000000000001;
 
-    Matrix(int row, int column, T num) : _row(row), _column(column) {
+    Matrix(int row, int column, T num) : _row(row), _column(column) { //заполнение матрицы 1 значением
+	
         if (row <= 0 || column <= 0) throw std::invalid_argument("Bad size for matrix");
         allocate(_row, _column);
         for (int i = 0; i < _row; ++i) {
@@ -83,11 +87,14 @@ public:
         }
     }
 
-    Matrix(int row, int column, T low, T up) : _row(row), _column(column) {
+    Matrix(int row, int column, T low, T up) : _row(row), _column(column) { //заполнение матрицы рандомными значениями
         if (row <= 0 || column <= 0) throw std::invalid_argument("Bad size for matrix");
+		
         std::random_device rd;
         std::mt19937 gen(rd());
+		
         allocate(_row, _column);
+		
         for (int i = 0; i < _row; ++i) {
             for (int j = 0; j < _column; ++j) {
                 _data[i][j] = random_value<T>(gen, low, up);
@@ -95,7 +102,7 @@ public:
         }
     }
 
-    Matrix(const Matrix& other) : _row(other._row), _column(other._column) {
+    Matrix(const Matrix& other) : _row(other._row), _column(other._column) { //конструктор копирования
         allocate(_row, _column);
         for (int i = 0; i < _row; ++i) {
             for (int j = 0; j < _column; ++j) {
@@ -104,32 +111,39 @@ public:
         }
     }
 
-    Matrix(Matrix&& other) noexcept
-        : _row(other._row), _column(other._column), _data(other._data) {
+    Matrix(Matrix&& other) noexcept : _row(other._row), _column(other._column), _data(other._data) { //конструктор перемещения
         other._row = other._column = 0;
         other._data = nullptr;
     }
 
-    Matrix& operator=(const Matrix& other) {
+    Matrix& operator=(const Matrix& other) { //оператор присваивания копированием
         if (this == &other) return *this;
-        deallocate();
-        _row = other._row; _column = other._column;
+        clear();
+        _row = other._row; 
+        _column = other._column;
         allocate(_row, _column);
-        for (int i = 0; i < _row; ++i)
-            for (int j = 0; j < _column; ++j)
+        for (int i = 0; i < _row; ++i) {
+            for (int j = 0; j < _column; ++j) {
                 _data[i][j] = other._data[i][j];
-        return *this;
+            }
+        }
+       return *this;
     }
 
-    Matrix& operator=(Matrix&& other) noexcept {
+    Matrix& operator=(Matrix&& other) noexcept { //оператор присваивания перемещением
         if (this == &other) return *this;
-        deallocate();
-        _row = other._row; _column = other._column; _data = other._data;
-        other._row = other._column = 0; other._data = nullptr;
+        clear();
+        _row = other._row; 
+        _column = other._column; 
+        _data = other._data;
+        other._row = other._column = 0; 
+        other._data = nullptr;
         return *this;
     }
 
-    ~Matrix() { deallocate(); }
+    ~Matrix() { clear(); } //деструктор
+	
+	////////////////////////////////////
 
     bool operator==(const Matrix& other) const {
         if (_row != other._row || _column != other._column)
